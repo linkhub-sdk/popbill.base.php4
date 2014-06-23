@@ -3,7 +3,7 @@
 require_once 'popbill.php';
 
 $LinkID = 'TESTER';
-$SecretKey = 'jQIh/cKXGskpAdzgidwn9HWhXaTPD7+Gv4gGJ6asrHE=';
+$SecretKey = 'N/LK26AeJYeBKL3vFeWgmqQsR89eeKwGPKQA6Uslu/c=';
 
 
 $PopbillService = new PopbillBase($LinkID,$SecretKey);
@@ -13,7 +13,16 @@ $PopbillService->IsTest(true);
 echo substr($PopbillService->GetPopbillURL('1231212312','userid','LOGIN'),0,50). ' ...';
 echo chr(10);
 
-echo $PopbillService->GetBalance('1231212312');
+$result = $PopbillService->GetBalance('1231212312');
+
+if(is_a($result,'PopbillException')) {
+	echo $result->__toString();
+	exit();
+}
+else {
+	echo $result;
+	echo Chr(10);
+}
 echo chr(10);
 echo $PopbillService->GetPartnerBalance('1231212312');
 echo chr(10);

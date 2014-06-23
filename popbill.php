@@ -10,7 +10,7 @@
 *
 * http://www.linkhub.co.kr
 * Author : Kim Seongjun (pallet027@gmail.com)
-* Written : 2014-04-15
+* Written : 2014-06-23
 *
 * Thanks for your interest.
 * We welcome any suggestions, feedbacks, blames or anythings.
@@ -24,6 +24,7 @@ class PopbillBase
 {
 	var $Token = NULL;
 	
+	//생성자
     function PopbillBase($LinkID,$SecretKey) {
     	$this->Linkhub = new Linkhub($LinkID,$SecretKey);
     	$this->scopes[] = 'member';
@@ -35,35 +36,12 @@ class PopbillBase
     	$this->ServiceURL_TEST = 'https://popbill_test.linkhub.co.kr';
     }
     
+    //테스트모드 설정
     function IsTest($T) {$this->IsTest = $T;}
 
+	//스코프 추가
     function AddScope($scope) {$this->scopes[] = $scope;}
     
-    function getsession_Token($CorpNum) {
-		    	
-    	$Refresh = false;
-    	
-    	if(is_null($this->Token)) {
-    		$Refresh = true;
-    	}
-    	else {
-    		$Expiration = date($this->Token->expiration);
-    		$now = date("Y-m-d H:i:s",time());
-    		$Refresh = $Expiration < $now; 
-    	}
-    	
-    	if($Refresh) {
-    		
-    		$_Token = $this->Linkhub->getToken($this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL,$CorpNum, $this->scopes);
-    		if(is_a($_Token,'LinkhubException')) {
-    			trigger_error($_Token->__toString(),E_USER_ERROR);
-    		}
-    		$this->Token = $_Token;
-    	}
-    	
-    	return $this->Token->session_token;
-    }
- 
     //팝빌 연결 URL함수
     function GetPopbillURL($CorpNum ,$UserID, $TOGO) {
     	$response = $this->executeCURL('/?TG='.$TOGO,$CorpNum,$UserID);
@@ -80,20 +58,55 @@ class PopbillBase
  
     //회원 잔여포인트 확인
     function GetBalance($CorpNum) {
-    	return $this->Linkhub->getBalance($this->getsession_Token($CorpNum),$this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL);
+    	$_Token = $this->getsession_Token($CorpNum);
+    	if(is_a($_Token,'PopbillException')) return $_Token;
+    	
+    	return $this->Linkhub->getBalance($_Token,$this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL);
     }
  
     //파트너 잔여포인트 확인
     function GetPartnerBalance($CorpNum) {
-    	return $this->Linkhub->getPartnerBalance($this->getsession_Token($CorpNum),$this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL);
+    	$_Token = $this->getsession_Token($CorpNum);
+    	if(is_a($_Token,'PopbillException')) return $_Token;
+    	
+    	return $this->Linkhub->getPartnerBalance($_Token ,$this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL);
     }
     
+    /************ 이하 내부 함수 ***************************/
+    function getsession_Token($CorpNum) {
+		    	
+    	$Refresh = false;
+    	
+    	if(is_null($this->Token)) {
+    		$Refresh = true;
+    	}
+    	else {
+    		$Expiration = date($this->Token->expiration);
+    		$now = date("Y-m-d H:i:s",time());
+    		$Refresh = $Expiration < $now; 
+    	}
+    	
+    	if($Refresh) {
+    		
+    		$_Token = $this->Linkhub->getToken($this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL,$CorpNum, $this->scopes);
+    		//TODO return Exception으로 처리 변경...
+    		if(is_a($_Token,'LinkhubException')) {
+    			return new PopbillException($_Token);
+    		}
+    		$this->Token = $_Token;
+    	}
+    	
+    	return $this->Token->session_token;
+    }
     function executeCURL($uri,$CorpNum = null,$userID = null,$isPost = false, $action = null, $postdata = null,$isMultiPart=false) {
+		$_Token = $this->getsession_Token($CorpNum);
+    	if(is_a($_Token,'PopbillException')) return $_Token;
+		
 		$http = curl_init(($this->IsTest ? $this->ServiceURL_TEST : $this->ServiceURL_REAL).$uri);
 		$header = array();
 		
 		if(is_null($CorpNum) == false) {
-			$header[] = 'Authorization: Bearer '.$this->getsession_Token($CorpNum);
+			$header[] = 'Authorization: Bearer '.$_Token;
 		}
 		if(is_null($userID) == false) {
 			$header[] = 'x-pb-userid: '.$userID;
@@ -124,7 +137,7 @@ class PopbillBase
 		return $this->Linkhub->json_decode($responseJson);
 	}
 }
-
+//회원가입정보 구조체
 class JoinForm 
 {
 	var $LinkID;
@@ -142,12 +155,18 @@ class JoinForm
 	var $PWD;
 }
 
+//예외클래스
 class PopbillException
 {
 	var $code;
 	var $message;
 
 	function PopbillException($responseJson) {
+		if(is_a($responseJson,'LinkhubException')) {
+			$this->code = $responseJson->code;
+			$this->message = $responseJson->message;
+			return $this;
+		}
 		$json = new Services_JSON();
 		$result = $json->decode($responseJson);
 		$this->code = $result->code;
