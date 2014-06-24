@@ -81,8 +81,8 @@ class PopbillBase
     		$Refresh = true;
     	}
     	else {
-    		$Expiration = date($this->Token->expiration);
-    		$now = date("Y-m-d H:i:s",time());
+    		$Expiration = gmdate($this->Token->expiration);
+    		$now = gmdate("Y-m-d H:i:s",time());
     		$Refresh = $Expiration < $now; 
     	}
     	
