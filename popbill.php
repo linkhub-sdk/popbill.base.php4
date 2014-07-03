@@ -49,6 +49,11 @@ class PopbillBase
     	return $response->url;
     }
  
+ 	//가입여부 확인
+ 	function CheckIsMember($CorpNum , $LinkID) {
+ 		return $this->executeCURL('/Join?CorpNum='.$CorpNum.'&LID='.$LinkID);
+ 	}
+ 	
     //회원가입
     function JoinMember($JoinForm) {
     	$postdata = $this->Linkhub->json_encode($JoinForm);
@@ -99,13 +104,14 @@ class PopbillBase
     	return $this->Token->session_token;
     }
     function executeCURL($uri,$CorpNum = null,$userID = null,$isPost = false, $action = null, $postdata = null,$isMultiPart=false) {
-		$_Token = $this->getsession_Token($CorpNum);
-    	if(is_a($_Token,'PopbillException')) return $_Token;
 		
 		$http = curl_init(($this->IsTest ? $this->ServiceURL_TEST : $this->ServiceURL_REAL).$uri);
 		$header = array();
 		
 		if(is_null($CorpNum) == false) {
+			$_Token = $this->getsession_Token($CorpNum);
+    		if(is_a($_Token,'PopbillException')) return $_Token;
+    		
 			$header[] = 'Authorization: Bearer '.$_Token;
 		}
 		if(is_null($userID) == false) {
