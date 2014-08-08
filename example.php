@@ -3,7 +3,7 @@
 require_once 'popbill.php';
 
 $LinkID = 'TESTER';
-$SecretKey = 'N/LK26AeJYeBKL3vFeWgmqQsR89eeKwGPKQA6Uslu/c=';
+$SecretKey = 'koHkuukeNY+AO52II2m/e23WdSiKCs0UeeHTWYEES0c=';
 
 
 $PopbillService = new PopbillBase($LinkID,$SecretKey);
@@ -24,6 +24,19 @@ else {
 	echo Chr(10);
 }
 echo chr(10);
+
+$result = $PopbillService->GetBalance('4108600477');
+
+if(is_a($result,'PopbillException')) {
+	echo $result->__toString();
+	exit();
+}
+else {
+	echo $result;
+	echo Chr(10);
+}
+echo chr(10);
+
 echo $PopbillService->GetPartnerBalance('1231212312');
 echo chr(10);
 

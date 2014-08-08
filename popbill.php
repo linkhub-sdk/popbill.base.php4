@@ -22,7 +22,7 @@ require_once 'Linkhub/JSON.php';
 
 class PopbillBase
 {
-	var $Token = NULL;
+	var $Token_Table = array();
 	
 	//생성자
     function PopbillBase($LinkID,$SecretKey) {
@@ -80,28 +80,34 @@ class PopbillBase
     /************ 이하 내부 함수 ***************************/
     function getsession_Token($CorpNum) {
 		    	
+		$_targetToken = null;
+
+		if(array_key_exists($CorpNum, $this->Token_Table)) {
+			$_targetToken = $this->Token_Table[$CorpNum];
+		}
+
     	$Refresh = false;
     	
-    	if(is_null($this->Token)) {
+    	if(is_null($_targetToken)) {
     		$Refresh = true;
     	}
     	else {
-    		$Expiration = gmdate($this->Token->expiration);
+    		$Expiration = gmdate($_targetToken->expiration);
     		$now = gmdate("Y-m-d H:i:s",time());
     		$Refresh = $Expiration < $now; 
     	}
     	
     	if($Refresh) {
     		
-    		$_Token = $this->Linkhub->getToken($this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL,$CorpNum, $this->scopes);
+    		$_targetToken = $this->Linkhub->getToken($this->IsTest ? $this->ServiceID_TEST : $this->ServiceID_REAL,$CorpNum, $this->scopes);
     		//TODO return Exception으로 처리 변경...
-    		if(is_a($_Token,'LinkhubException')) {
-    			return new PopbillException($_Token);
+    		if(is_a($_targetToken,'LinkhubException')) {
+    			return new PopbillException($_targetToken);
     		}
-    		$this->Token = $_Token;
+    		$this->Token_Table[$CorpNum] = $_targetToken;
     	}
     	
-    	return $this->Token->session_token;
+    	return $_targetToken->session_token;
     }
     function executeCURL($uri,$CorpNum = null,$userID = null,$isPost = false, $action = null, $postdata = null,$isMultiPart=false) {
 		
